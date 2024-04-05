@@ -5,7 +5,7 @@
 
 - [ ] HTTP Gateway
 - [ ] WS Gateway
-- [ ] Tls Gateway (testing)
+- [X] Tls Gateway (testing)
 - [ ] Tls Services
 - [ ] Auth Middleware integration
 - [ ] Cutter Middleware integration
