@@ -1,20 +1,29 @@
+use std::collections::HashMap;
 use std::fs::{File, OpenOptions};
 use std::io::Read;
 use std::io::Write;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum DistributeMode {
-    Single,
+pub struct Tls {
+    pub enabled: bool,
+    pub cert: String,
+    pub key: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Service {
+    pub url_match: String,
+    pub tls_cert: Option<String>,
+    pub upstreams: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Config {
     pub host: String,
     pub port: u16,
-    pub mode: DistributeMode,
-    pub storages: Vec<String>,
+    pub tls: Tls,
+    pub services: HashMap<String, Service>,
 }
 
 impl Config {
@@ -24,8 +33,31 @@ impl Config {
             let default_config = Config {
                 host: "127.0.0.1".to_string(),
                 port: 8080,
-                mode: DistributeMode::Single,
-                storages: vec![],
+                tls: Tls {
+                    enabled: false,
+                    cert: "cert.pem".to_string(),
+                    key: "key.pem".to_string(),
+                },
+                services: {
+                    let mut services = HashMap::new();
+                    services.insert(
+                        "Ums".to_string(),
+                        Service {
+                            url_match: "(test|stage).mlkh.ru/api(1|2)/ums/.*".to_string(),
+                            tls_cert: Some("service/cert.pem".to_string()),
+                            upstreams: vec!["http://ums:8080".to_string()],
+                        }
+                    );
+                    services.insert(
+                        "Blog".to_string(),
+                        Service {
+                            url_match: "(test|stage).mlkh.ru/api(1|2)/blog/.*".to_string(),
+                            tls_cert: None,
+                            upstreams: vec!["http://blog:8080".to_string()],
+                        }
+                    );
+                    services
+                }
             };
 
             match OpenOptions::new().write(true).create_new(true).open(config_path) {
