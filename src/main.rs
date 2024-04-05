@@ -36,10 +36,7 @@ async fn main() -> std::io::Result<()> {
         App::new().app_data(web::Data::new(AppState {
             config: config.clone(),
         })
-        ).service(web::scope("/gateway")
-            .configure(routes::router)
-        )
-            .wrap(Logger::new("[%s] [%{r}a] %U"))
+        ).configure(routes::router).wrap(Logger::new("[%s] [%{r}a] %U"))
     };
 
     if tls.enabled {
