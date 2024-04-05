@@ -1,0 +1,19 @@
+[package]
+name = "api_gateway"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+actix-web = { version = "4.5.1", features = ["openssl"] }
+openssl = "0.10.64"
+env_logger = "0.11.3"
+serde = { version = "1.0.197", features = ["derive"] }
+serde_yaml = "0.9.33"
+log = "0.4.21"
+uuid = { version = "1.8.0", features = [
+    "v4",
+    "serde",
+    "fast-rng",
+    "macro-diagnostics"
+] }
+tonic="0.11.0"
