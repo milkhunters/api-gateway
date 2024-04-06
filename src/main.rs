@@ -1,10 +1,13 @@
+use std::collections::HashMap;
 use actix_web::{
     App,
     HttpServer,
     middleware::Logger,
     web
 };
+
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
+use regex::Regex;
 
 mod routes;
 mod models;
@@ -13,6 +16,8 @@ mod core;
 
 struct AppState {
     config: config::Config,
+    http_client: awc::Client,
+    service_matching: Vec<(String, Regex)>,
 }
 
 #[actix_web::main]
@@ -30,14 +35,29 @@ async fn main() -> std::io::Result<()> {
     let port = config.port.clone();
     let tls = config.tls.clone();
 
-    log::info!("Starting server at http://{}:{}", host, port);
+    let mut service_matching = Vec::new();
+    for (service_name, service) in config.services.iter() {
+        let re = match Regex::new(&service.url_match) {
+            Ok(re) => re,
+            Err(error) => {
+                log::error!("Failed to compile regex for service {}: {}", service_name, error);
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, error));
+            },
+        };
+        service_matching.push((service_name.clone(), re));
+    }
 
     let app_builder = move || {
         App::new().app_data(web::Data::new(AppState {
             config: config.clone(),
+            http_client: awc::Client::default(),
+            service_matching: service_matching.clone(),
         })
-        ).configure(routes::router).wrap(Logger::new("[%s] [%{r}a] %U"))
+        ).configure(routes::router)
+            // .wrap(Logger::new("[%s] [%{r}a] %U"))
     };
+
+    let mut server = HttpServer::new(app_builder);
 
     if tls.enabled {
         let mut tls_builder = SslAcceptor::mozilla_intermediate(SslMethod::tls()).unwrap();
@@ -55,8 +75,12 @@ async fn main() -> std::io::Result<()> {
                 return Err(std::io::Error::new(std::io::ErrorKind::Other, error));
             },
         };
-        HttpServer::new(app_builder).bind_openssl((host, port), tls_builder)?.run().await
+        log::info!("Starting server at https://{}:{}", host, port);
+        server = server.bind_openssl((host, port), tls_builder).unwrap();
     } else {
-        HttpServer::new(app_builder).bind((host, port))?.run().await
+        log::info!("Starting server at http://{}:{}", host, port);
+        server = server.bind((host, port)).unwrap();
     }
+
+    server.workers(4).run().await
 }
