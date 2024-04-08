@@ -3,7 +3,7 @@
 
 ### Todo
 
-- [ ] HTTP Gateway
+- [X] HTTP Gateway
 - [ ] WS Gateway
 - [X] Tls Gateway (testing)
 - [ ] Tls Services
