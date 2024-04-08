@@ -1,4 +1,5 @@
 use actix_web::{HttpRequest, HttpResponse, Result, web};
+use awc::error::SendRequestError;
 
 use crate::AppState;
 
@@ -8,11 +9,13 @@ pub fn router(cfg: &mut web::ServiceConfig) {
     );
 }
 
+
 async fn http_gateway(
     tgr: HttpRequest,
-    app_state: web::Data<AppState>
+    client: web::Data<awc::Client>,
+    payload: web::Payload,
+    app_state: web::Data<AppState>,
 ) -> Result<HttpResponse> {
-    let method = tgr.method().clone();
     let connection_info = tgr.connection_info();
 
     let input_uri_str = &format!(
@@ -35,30 +38,30 @@ async fn http_gateway(
         None => return Ok(HttpResponse::NotFound().body("Service not found")),
     };
 
-    let client = &app_state.http_client;
+    // TODO: balanced upstreams
+    let fgr = client
+        .request_from(&service.1.upstreams[0], tgr.head())
+        .insert_header(("Forwarded", format!("for={}", connection_info.host())))
+        .no_decompress();
 
-    let mut fgr = client.request(method, &service.1.upstreams[0]);
-    for (key, value) in tgr.headers().iter() {
-        fgr = fgr.insert_header((key.clone(), value.clone()));
-    }
-    fgr = fgr.insert_header(
-        ("X-Forwarded-For", connection_info.host().to_string()),
-    );
-
-    let mut res = match fgr.send().await {
+    let res = match fgr.send_stream(payload).await {
         Ok(res) => res,
-        Err(error) => {
-            return Ok(HttpResponse::InternalServerError().body(error.to_string()));
+        Err(error) => return match error {
+            SendRequestError::Timeout => {
+                Ok(HttpResponse::GatewayTimeout().finish())
+            },
+            _ => {
+                Ok(HttpResponse::BadGateway().body(error.to_string()))
+            },
         },
     };
 
-    let body = match res.body().await {
-        Ok(body) => body,
-        Err(error) => {
-            return Ok(HttpResponse::InternalServerError().body(error.to_string()));
-        },
-    };
+    let mut client_response = HttpResponse::build(res.status());
 
+    // TODO: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Connection#directives
+    for (header_name, header_value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
+        client_response.insert_header((header_name.clone(), header_value.clone()));
+    }
 
-    Ok(HttpResponse::Ok().body(body))
+    Ok(client_response.streaming(res))
 }
