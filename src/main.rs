@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use actix_web::{
     App,
     HttpServer,
@@ -16,7 +15,6 @@ mod core;
 
 struct AppState {
     config: config::Config,
-    http_client: awc::Client,
     service_matching: Vec<(String, Regex)>,
 }
 
@@ -48,12 +46,14 @@ async fn main() -> std::io::Result<()> {
     }
 
     let app_builder = move || {
-        App::new().app_data(web::Data::new(AppState {
-            config: config.clone(),
-            http_client: awc::Client::default(),
-            service_matching: service_matching.clone(),
-        })
-        ).configure(routes::router)
+        App::new()
+            .app_data(web::Data::new(AppState {
+                    config: config.clone(),
+                    service_matching: service_matching.clone(),
+                })
+            )
+            .app_data(web::Data::new(awc::Client::default()))
+            .configure(routes::router)
             // .wrap(Logger::new("[%s] [%{r}a] %U"))
     };
 
