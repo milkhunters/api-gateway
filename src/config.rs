@@ -6,9 +6,14 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Tls {
-    pub enabled: bool,
     pub cert: String,
     pub key: String,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Auth {
+    pub grpc_host: String,
+    pub grpc_port: u16
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -22,7 +27,11 @@ pub struct Service {
 pub struct Config {
     pub host: String,
     pub port: u16,
-    pub tls: Tls,
+    pub workers: Option<usize>,
+    pub is_intermediate: bool,
+    pub log_level: Option<String>,
+    pub tls: Option<Tls>,
+    pub auth: Option<Auth>,
     pub services: HashMap<String, Service>,
 }
 
@@ -33,11 +42,11 @@ impl Config {
             let default_config = Config {
                 host: "127.0.0.1".to_string(),
                 port: 8080,
-                tls: Tls {
-                    enabled: false,
-                    cert: "cert.pem".to_string(),
-                    key: "key.pem".to_string(),
-                },
+                workers: Some(4),
+                is_intermediate: false,
+                log_level: Some("info".to_string()),
+                tls: None,
+                auth: None,
                 services: {
                     let mut services = HashMap::new();
                     services.insert(

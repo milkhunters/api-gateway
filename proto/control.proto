@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package ums.control;
+
+service UMSControl {
+  rpc ExtractPayload (EPRequest) returns (EPResponse);
+}
+
+message EPRequest {
+  string session_token = 1;
+  string user_agent = 2;
+  string user_ip = 3;
+}
+
+message EPResponse {
+  string session_id = 1;
+  string user_id = 2;
+  string user_state = 3;
+  map<string, PermissionsList> permissions = 4;
+}
+
+message PermissionsList {
+  repeated string permission = 1;
+}
