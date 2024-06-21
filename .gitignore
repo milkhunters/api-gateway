@@ -11,5 +11,5 @@ config.yaml
 *.pdb
 
 # TLS
-cert.pem
-key.pem
+cert/cert.pem
+cert/key.pem
