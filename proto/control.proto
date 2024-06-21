@@ -20,5 +20,5 @@ message EPResponse {
 }
 
 message PermissionsList {
-  repeated string permission = 1;
+  repeated string permission_text_ids = 1;
 }

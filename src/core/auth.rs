@@ -38,7 +38,7 @@ pub async fn process(
                 user_id: response.get_ref().user_id.clone(),
                 user_state: response.get_ref().user_state.clone(),
                 permissions: response.get_ref().permissions.iter().map(|(k, v)| {
-                    (k.clone(), v.permission.clone())
+                    (k.clone(), v.permission_text_ids.clone())
                 }).collect()
             };
             // info!("Elapsed time: {:?}", start.elapsed());
