@@ -6,7 +6,6 @@ use actix_web::{
     middleware::Logger,
     web
 };
-use dotenv::dotenv;
 
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use regex::Regex;
@@ -31,8 +30,7 @@ struct AppState {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenv().ok();
-
+    
     let config = match config::Config::new("config.yaml") {
         Ok(config) => config,
         Err(error) => {
@@ -113,7 +111,7 @@ async fn main() -> std::io::Result<()> {
                 })
             )
             .configure(core::usecase::router)
-            // .wrap(Logger::new("[%s] [%{r}a] %U"))
+            .wrap(Logger::new("[%s] [%{r}a] %U"))
     };
 
     let listener = match TcpListener::bind(format!("{}:{}", host, port)) {
