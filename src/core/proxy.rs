@@ -76,5 +76,10 @@ pub async fn process(
     for (header_name, header_value) in res.headers().iter().filter(|(h, _)| *h != "connection") {
         client_response.insert_header((header_name.clone(), header_value.clone()));
     }
+    
+    if res.status() == 204 {
+        return client_response.finish();
+    }
+    
     client_response.streaming(res)
 }
