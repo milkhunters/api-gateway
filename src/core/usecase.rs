@@ -63,7 +63,7 @@ async fn http_gateway(
                 Ok((key, value)) => {
                     auth_headers = Some((key, value));
                 },
-                Err(error) => return Err(error)
+                Err(error) => return Ok(error),
             }
         }
     }

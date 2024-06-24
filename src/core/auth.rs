@@ -1,9 +1,12 @@
 use std::collections::HashMap;
+
+use actix_web::HttpResponse;
+use awc::body::MessageBody;
 use serde::Serialize;
 use tonic::transport::Channel;
+
 use crate::proto;
 use crate::proto::ums_control_client::UmsControlClient;
-
 
 #[derive(Debug, Serialize)]
 struct Payload {
@@ -19,7 +22,7 @@ pub async fn process(
     session_token: &str,
     user_agent: &str,
     ip: &str
-) -> Result<(String, String), actix_web::Error> {
+) -> Result<(String, String), HttpResponse> {
     let mut client = client;
     // let start = std::time::Instant::now();
     let request = tonic::Request::new(proto::EpRequest {
@@ -45,7 +48,23 @@ pub async fn process(
             Ok(("payload".to_string(), serde_json::to_string(&model).unwrap()))
         },
         Err(error) => {
-            Err(actix_web::error::ErrorUnauthorized(error))
+            match error.code() {
+                tonic::Code::Unauthenticated => {
+                    let mut http_error = HttpResponse::Unauthorized()
+                        .body(error.message().to_string());
+                    http_error.headers_mut().insert(
+                        "Content-Type".parse().unwrap(),
+                        "application/json".parse().unwrap()
+                    );
+                    return Err(http_error);
+                },
+                _ => {
+                    return Err(
+                        HttpResponse::InternalServerError()
+                            .body(serde_json::to_string(&error.message()).unwrap())
+                    );
+                }
+            }
         }
     }
 }
