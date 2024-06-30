@@ -25,7 +25,7 @@ struct AppState {
     config: config::Config,
     service_matching: Vec<(String, Regex)>,
     client: awc::Client,
-    grpc_client: Option<UmsControlClient<tonic::transport::Channel>>
+    grpc_client: Vec<UmsControlClient<tonic::transport::Channel>>
 }
 
 #[actix_web::main]
@@ -61,29 +61,22 @@ async fn main() -> std::io::Result<()> {
         }
     );
 
-    let grpc_ums_client = {
-        if let Some(auth) = &config.auth {
-            if auth.grpc_host.is_empty() || auth.grpc_port == 0 {
-                log::error!("Auth config is invalid");
-                std::process::exit(1);
+    let grpc_ums_clients = {
+        if let Some(auth_servers) = &config.auth_servers {
+            let mut servers = Vec::new();
+            for addr in auth_servers {
+                let client = match UmsControlClient::connect(addr.clone()).await {
+                    Ok(client) => client,
+                    Err(error) => {
+                        log::error!("Failed to connect to gRPC server {}: {}", addr, error);
+                        std::process::exit(1);
+                    },
+                };
+                servers.push(client);
             }
-
-            match UmsControlClient::connect(
-                format!(
-                    "{protocol}://{host}:{port}",
-                    protocol = "http",
-                    host = auth.grpc_host,
-                    port = auth.grpc_port
-                )
-            ).await {
-                Ok(client) => Some(client),
-                Err(error) => {
-                    log::error!("Failed to connect to gRPC server: {}", error);
-                    std::process::exit(1);
-                },
-            }
+            servers
         } else {
-            None
+            Vec::new()
         }
     };
 
@@ -106,12 +99,12 @@ async fn main() -> std::io::Result<()> {
                 web::Data::new(AppState {
                     config: config.clone(),
                     service_matching: service_matching.clone(),
-                    grpc_client: grpc_ums_client.clone(),
+                    grpc_client: grpc_ums_clients.clone(),
                     client: awc::Client::new(),
                 })
             )
             .configure(core::usecase::router)
-            .wrap(Logger::new("[%s] [%{r}a] %U"))
+            .wrap(Logger::default())
     };
 
     let listener = match TcpListener::bind(format!("{}:{}", host, port)) {

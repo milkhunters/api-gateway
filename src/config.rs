@@ -31,7 +31,7 @@ pub struct Config {
     pub is_intermediate: bool,
     pub log_level: Option<String>,
     pub tls: Option<Tls>,
-    pub auth: Option<Auth>,
+    pub auth_servers: Option<Vec<String>>,
     pub services: HashMap<String, Service>,
 }
 
@@ -46,7 +46,7 @@ impl Config {
                 is_intermediate: false,
                 log_level: Some("info".to_string()),
                 tls: None,
-                auth: None,
+                auth_servers: vec!["http://auth:50051".to_string()].into(),
                 services: {
                     let mut services = HashMap::new();
                     services.insert(
