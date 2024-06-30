@@ -13,10 +13,12 @@ pub async fn process(
     is_intermediate: bool
 ) -> HttpResponse {
 
-    let service_urls = &service.1.upstreams;
+    let service_url = &service.1.upstreams.get(
+        rand::random::<usize>() % service.1.upstreams.len()
+    ).unwrap();
     let service_name = service.0;
 
-    let mut url = match Url::parse(&service_urls[0]) {
+    let mut url = match Url::parse(&service_url) {
         Ok(value) => value,
         Err(error) => {
             error!(
@@ -41,10 +43,10 @@ pub async fn process(
     };
     
     if remote_addr.is_none() {
+        error!("Failed to get remote address");
         return HttpResponse::BadRequest().body("Failed to get remote address");
     }
-    
-    // TODO: balanced upstreams
+
     let mut request = client
         .request_from(url.as_str(), req.head())
         .insert_header(("Forwarded", format!("for={}", remote_addr.unwrap())))
@@ -53,10 +55,6 @@ pub async fn process(
     if let Some((key, value)) = auth_headers {
         request = request.insert_header((key, value));
     }
-    
-    // request.headers().iter().for_each(|(h, v)| {
-    //     info!("{}: {}", h, v.to_str().unwrap());
-    // });
 
     let res = match request.send_stream(payload).await {
         Ok(res) => res,

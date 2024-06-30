@@ -40,7 +40,7 @@ async fn http_gateway(
     // Auth Step todo: clear user payload header if exists
     let mut auth_headers: Option<(String, String)> = None;
     if let Some(session_token) = req.cookie("session_token") {
-        if let Some(grpc_client) = app_state.grpc_client.clone() {
+        if !app_state.grpc_client.is_empty() {
 
             let user_agent = req.headers().get("user-agent").map(|value| {
                 value.to_str().unwrap()
@@ -54,8 +54,12 @@ async fn http_gateway(
                 }
             };
             
+            let grpc_client = app_state.grpc_client.get(
+                rand::random::<usize>() % app_state.grpc_client.len()
+            ).unwrap().clone();
+            
             match auth::process(
-                grpc_client, 
+                grpc_client,
                 session_token.value(),
                 user_agent.unwrap_or("Unknown"),
                 &ip
@@ -76,5 +80,4 @@ async fn http_gateway(
         auth_headers,
         app_state.config.is_intermediate
     ).await)
-    
 }
