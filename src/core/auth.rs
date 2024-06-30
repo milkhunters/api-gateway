@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use actix_web::HttpResponse;
-use awc::body::MessageBody;
 use serde::Serialize;
 use tonic::transport::Channel;
 
@@ -24,7 +23,6 @@ pub async fn process(
     ip: &str
 ) -> Result<(String, String), HttpResponse> {
     let mut client = client;
-    // let start = std::time::Instant::now();
     let request = tonic::Request::new(proto::EpRequest {
         session_token: session_token.to_string(),
         user_agent: user_agent.to_string(),
@@ -35,7 +33,6 @@ pub async fn process(
     
     match response {
         Ok(response) => {
-            // info!("Session token is valid {}", response.get_ref().session_id.clone());
             let model = Payload {
                 session_id: response.get_ref().session_id.clone(),
                 user_id: response.get_ref().user_id.clone(),
@@ -44,7 +41,6 @@ pub async fn process(
                     (k.clone(), v.permission_text_ids.clone())
                 }).collect()
             };
-            // info!("Elapsed time: {:?}", start.elapsed());
             Ok(("payload".to_string(), serde_json::to_string(&model).unwrap()))
         },
         Err(error) => {
