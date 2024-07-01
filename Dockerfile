@@ -17,6 +17,6 @@ RUN apk add --no-cache openssl
 
 WORKDIR /usr/local/bin
 
-COPY --from=build /usr/local/cargo/bin/api_gateway .
+COPY --from=build /usr/local/cargo/bin/api-gateway .
 
-CMD ["api_gateway"]
+CMD ["api-gateway"]
