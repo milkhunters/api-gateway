@@ -1,12 +1,12 @@
 use std::net::TcpListener;
 use std::thread;
+
 use actix_web::{
     App,
     HttpServer,
     middleware::Logger,
     web
 };
-
 use openssl::ssl::{SslAcceptor, SslFiletype, SslMethod};
 use regex::Regex;
 
