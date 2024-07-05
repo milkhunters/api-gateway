@@ -1,4 +1,5 @@
 use std::net::TcpListener;
+use std::str::FromStr;
 use std::thread;
 
 use actix_web::{
@@ -30,25 +31,21 @@ struct AppState {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    
+
     let config = match config::Config::new("config.yaml") {
         Ok(config) => config,
         Err(error) => {
+            env_logger::builder().filter_level(log::LevelFilter::Error).init();
             log::error!("Failed to load config: {}", error);
             std::process::exit(1);
         },
     };
 
     if let Some(log_level) = &config.log_level {
-        std::env::set_var("RUST_LOG", log_level);
+        env_logger::builder()
+            .filter_level(log::LevelFilter::from_str(log_level).unwrap())
+            .init();
     }
-
-    env_logger::builder()
-        .filter_module("consulrs", log::LevelFilter::Error)
-        .filter_module("tracing", log::LevelFilter::Error)
-        .filter_module("rustify", log::LevelFilter::Error)
-        .init();
-
 
     let host = config.host.clone();
     let port = config.port;
