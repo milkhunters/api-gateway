@@ -3,16 +3,16 @@ syntax = "proto3";
 package ums.control;
 
 service UMSControl {
-  rpc ExtractPayload (EPRequest) returns (EPResponse);
+  rpc ExtractPayload (ExtractPayloadRequest) returns (ExtractPayloadResponse);
 }
 
-message EPRequest {
+message ExtractPayloadRequest {
   string session_token = 1;
   string user_agent = 2;
   string user_ip = 3;
 }
 
-message EPResponse {
+message ExtractPayloadResponse {
   string session_id = 1;
   string user_id = 2;
   string user_state = 3;

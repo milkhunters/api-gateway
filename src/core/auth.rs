@@ -23,7 +23,7 @@ pub async fn process(
     ip: &str
 ) -> Result<(String, String), HttpResponse> {
     let mut client = client;
-    let request = tonic::Request::new(proto::EpRequest {
+    let request = tonic::Request::new(proto::ExtractPayloadRequest {
         session_token: session_token.to_string(),
         user_agent: user_agent.to_string(),
         user_ip: ip.to_string(),
@@ -44,7 +44,7 @@ pub async fn process(
             Ok(("payload".to_string(), serde_json::to_string(&model).unwrap()))
         },
         Err(error) => {
-            match error.code() {
+            return match error.code() {
                 tonic::Code::Unauthenticated => {
                     let mut http_error = HttpResponse::Unauthorized()
                         .body(error.message().to_string());
@@ -52,13 +52,13 @@ pub async fn process(
                         "Content-Type".parse().unwrap(),
                         "application/json".parse().unwrap()
                     );
-                    return Err(http_error);
+                    Err(http_error)
                 },
                 _ => {
-                    return Err(
+                    Err(
                         HttpResponse::InternalServerError()
                             .body(serde_json::to_string(&error.message()).unwrap())
-                    );
+                    )
                 }
             }
         }
